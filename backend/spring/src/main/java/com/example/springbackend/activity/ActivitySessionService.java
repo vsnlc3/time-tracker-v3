@@ -175,6 +175,9 @@ public class ActivitySessionService {
                 request.endedAt(),
                 request.plannedDurationSeconds(),
                 request.plannedEndAt());
+        if (session.getEndedAt() != null && request.endedAt() == null) {
+            throw new BadRequestException("A finished activity session cannot be reopened");
+        }
         assertNoOverlap(currentUser.getId(), request.startedAt(), request.endedAt(), sessionId);
 
         List<SessionSegment> segments = findSegments(session);
@@ -207,6 +210,16 @@ public class ActivitySessionService {
         int index = indexOfSegment(segments, segmentId);
         boolean first = index == 0;
         boolean last = index == segments.size() - 1;
+
+        // Every segment except the last one must have a boundary for the next
+        // segment. Without this guard, a null value would be propagated to the
+        // next segment and fail later with a NullPointerException during sort.
+        if (!last && request.endedAt() == null) {
+            throw new BadRequestException("A non-final segment must have an end time");
+        }
+        if (session.getEndedAt() != null && last && request.endedAt() == null) {
+            throw new BadRequestException("A finished activity session cannot be reopened");
+        }
 
         Instant newSessionStart = first ? request.startedAt() : session.getStartedAt();
         Instant newSessionEnd = last ? request.endedAt() : session.getEndedAt();

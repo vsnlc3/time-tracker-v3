@@ -92,6 +92,11 @@ class MvpApiIntegrationTest {
         org.junit.jupiter.api.Assertions.assertEquals(5, tableCount);
         org.junit.jupiter.api.Assertions.assertEquals(0, oldTimeLogCount);
         org.junit.jupiter.api.Assertions.assertEquals("RESTRICT", userDeleteRule);
+        Integer tagColorColumnCount = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() "
+                        + "AND table_name = 'tags' AND column_name = 'color_key'",
+                Integer.class);
+        org.junit.jupiter.api.Assertions.assertEquals(1, tagColorColumnCount);
     }
 
     @Test
@@ -238,6 +243,63 @@ class MvpApiIntegrationTest {
                     + "(SELECT id FROM users WHERE google_subject = ?)", otherSubject);
             jdbcTemplate.update("DELETE FROM users WHERE google_subject = ?", otherSubject);
         }
+    }
+
+    @Test
+    void rejectsMissingSegmentBoundaryAndFinishedSessionReopen() throws Exception {
+        long tagId = createTag("Boundary");
+        String activityDate = LocalDate.now().toString();
+        MvcResult start = mockMvc.perform(post("/api/activity-sessions/start")
+                        .with(googleUser())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"tagId\":" + tagId
+                                + ",\"activityDate\":\"" + activityDate
+                                + "\",\"initialSegmentType\":\"FOCUS\"}"))
+                .andExpect(status().isCreated())
+                .andReturn();
+        long sessionId = json(start).get("id").longValue();
+
+        MvcResult switched = mockMvc.perform(post("/api/activity-sessions/{id}/switch", sessionId)
+                        .with(googleUser())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"segmentType\":\"BREAK\"}"))
+                .andExpect(status().isOk())
+                .andReturn();
+        JsonNode firstSegment = json(switched).get("segments").get(0);
+
+        mockMvc.perform(put("/api/session-segments/{id}", firstSegment.get("id").longValue())
+                        .with(googleUser())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"segmentType\":\"FOCUS\",\"startedAt\":\""
+                                + firstSegment.get("startedAt").textValue() + "\"}"))
+                .andExpect(status().isBadRequest());
+
+        MvcResult finished = mockMvc.perform(post("/api/activity-sessions/{id}/finish", sessionId)
+                        .with(googleUser()))
+                .andExpect(status().isOk())
+                .andReturn();
+        JsonNode finishedSession = json(finished);
+
+        mockMvc.perform(put("/api/activity-sessions/{id}", sessionId)
+                        .with(googleUser())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"tagId\":" + tagId
+                                + ",\"activityDate\":\"" + activityDate
+                                + "\",\"startedAt\":\""
+                                + finishedSession.get("startedAt").textValue() + "\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void requiresAuthenticationAndCsrfForApiRequests() throws Exception {
+        mockMvc.perform(get("/api/users/me"))
+                .andExpect(status().isUnauthorized());
+
+        mockMvc.perform(post("/api/tags")
+                        .with(googleAuthentication(subject))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"displayName\":\"No CSRF\"}"))
+                .andExpect(status().isForbidden());
     }
 
     private long createTag(String displayName) throws Exception {

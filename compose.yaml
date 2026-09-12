@@ -2,16 +2,16 @@ services:
   mysql:
     image: mysql:8.4
     environment:
-      MYSQL_DATABASE: app
-      MYSQL_USER: app
-      MYSQL_PASSWORD: app_password
-      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-app}
+      MYSQL_USER: ${MYSQL_USER:-app}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-app_password}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_password}
     ports:
       - "${MYSQL_HOST_PORT:-3306}:3306"
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uapp", "-papp_password"]
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u$${MYSQL_USER} -p$${MYSQL_PASSWORD}"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -22,9 +22,9 @@ services:
     ports:
       - "${BACKEND_HOST_PORT:-8080}:8080"
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/app
-      SPRING_DATASOURCE_USERNAME: app
-      SPRING_DATASOURCE_PASSWORD: app_password
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/${MYSQL_DATABASE:-app}
+      SPRING_DATASOURCE_USERNAME: ${MYSQL_USER:-app}
+      SPRING_DATASOURCE_PASSWORD: ${MYSQL_PASSWORD:-app_password}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       GOOGLE_REDIRECT_URI: ${GOOGLE_REDIRECT_URI:-http://localhost:3000/spring-auth/login/oauth2/code/google}

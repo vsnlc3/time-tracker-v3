@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.HttpStatusEntryPoint;
@@ -61,7 +62,12 @@ public class SecurityConfig {
                 .exceptionHandling(exception -> exception
                         .defaultAuthenticationEntryPointFor(
                                 new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED),
-                                new AntPathRequestMatcher("/api/**")))
+                                new AntPathRequestMatcher("/api/**"))
+                        .defaultAccessDeniedHandlerFor((request, response, accessDeniedException) -> {
+                            response.setStatus(HttpStatus.FORBIDDEN.value());
+                            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+                            response.getWriter().write("{\"message\":\"Request is forbidden\"}");
+                        }, new AntPathRequestMatcher("/api/**")))
                 .oauth2Login(oauth2 -> oauth2
                         .successHandler(authenticationSuccessHandler())
                         .failureHandler(authenticationFailureHandler()))

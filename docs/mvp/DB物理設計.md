@@ -46,6 +46,7 @@
 | `id` | `BIGINT UNSIGNED` | 不可 | なし | PK | タグID |
 | `user_id` | `BIGINT UNSIGNED` | 不可 | なし | FK → `users.id` | 所有ユーザーID |
 | `display_name` | `VARCHAR(255)` | 不可 | なし | UNIQUE `(user_id, display_name)` | タグ表示名 |
+| `color_key` | `VARCHAR(32)` | 不可 | `green` | - | UI表示用のタグカラーキー |
 | `created_at` | `DATETIME(6)` | 不可 | `CURRENT_TIMESTAMP(6)` | - | 作成日時 |
 | `updated_at` | `DATETIME(6)` | 不可 | `CURRENT_TIMESTAMP(6)` | - | 更新日時 |
 
@@ -169,6 +170,7 @@ CREATE TABLE tags (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
     user_id BIGINT UNSIGNED NOT NULL,
     display_name VARCHAR(255) NOT NULL,
+    color_key VARCHAR(32) NOT NULL DEFAULT 'green',
     created_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6),
     updated_at DATETIME(6) NOT NULL DEFAULT CURRENT_TIMESTAMP(6)
         ON UPDATE CURRENT_TIMESTAMP(6),

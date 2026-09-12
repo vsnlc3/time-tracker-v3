@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS tags (
   DEFAULT CHARACTER SET = utf8mb4
   COLLATE = utf8mb4_0900_ai_ci;
 
--- Keep an existing v2 database compatible while preserving the v0 tag palette.
+-- Keep an existing database compatible while preserving the default tag palette.
 SET @tag_color_column_exists = (
     SELECT COUNT(*)
     FROM information_schema.columns

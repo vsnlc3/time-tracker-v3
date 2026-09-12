@@ -11,5 +11,8 @@ frontend/**/out/
 .env.*
 !.env.example
 
+# Package manager cache accidentally created inside the workspace
+.pnpm-store/
+
 # OS files
 .DS_Store
