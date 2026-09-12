@@ -1,0 +1,15 @@
+# Java / Maven
+backend/**/target/
+
+# Next.js / Node
+frontend/**/node_modules/
+frontend/**/.next/
+frontend/**/out/
+
+# Local environment
+.env
+.env.*
+!.env.example
+
+# OS files
+.DS_Store
