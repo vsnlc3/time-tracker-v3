@@ -10,6 +10,7 @@ frontend/**/out/
 .env
 .env.*
 !.env.example
+!.env.production.example
 
 # Package manager cache accidentally created inside the workspace
 .pnpm-store/

@@ -38,6 +38,7 @@ services:
   frontend:
     build:
       context: ./frontend/nextjs
+      dockerfile: Dockerfile.dev
     ports:
       - "${FRONTEND_HOST_PORT:-3000}:3000"
     environment:
