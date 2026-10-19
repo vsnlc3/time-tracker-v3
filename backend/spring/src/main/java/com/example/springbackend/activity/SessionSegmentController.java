@@ -15,6 +15,7 @@ import jakarta.validation.constraints.Positive;
 @Validated
 @RestController
 @RequestMapping("/api/session-segments")
+/** 個々のセッションセグメントを編集・削除する API を提供します。 */
 public class SessionSegmentController {
 
     private final ActivitySessionService sessionService;
@@ -24,6 +25,7 @@ public class SessionSegmentController {
     }
 
     @PutMapping("/{segmentId}")
+    /** セグメントの時刻と区分を更新します。 */
     public SessionSegmentResponse update(
             @PathVariable @Positive Long segmentId,
             @Valid @RequestBody SessionSegmentUpdateRequest request) {
@@ -31,6 +33,7 @@ public class SessionSegmentController {
     }
 
     @DeleteMapping("/{segmentId}")
+    /** セグメントを削除し、本文のない HTTP 204 を返します。 */
     public ResponseEntity<Void> delete(@PathVariable @Positive Long segmentId) {
         sessionService.deleteSegment(segmentId);
         return ResponseEntity.noContent().build();

@@ -22,10 +22,13 @@ import {
 } from '@/lib/time'
 import { cn } from '@/lib/utils'
 
+/** 今日の合計・集中・休憩時間とタグ別の内訳を表示します。 */
 export function TodaySummary() {
   const { state, now, summary } = useStore()
   const today = dateKey(now)
 
+  // Store のサマリーが今日付でない場合は、取得済み記録から今日の値を計算します。
+  // 日付・データ・時計が変わると再集計し、進行中セッションの値も更新します。
   const data = React.useMemo(() => {
     if (summary?.activityDate === today) {
       return {
@@ -79,6 +82,7 @@ export function TodaySummary() {
     return { focus, brk, total: focus + brk, tags }
   }, [state, summary, today, now])
 
+  // 集計結果のタグ ID を表示名・色に結び付けます。
   const tagMap = React.useMemo(() => {
     const m: Record<string, (typeof state.tags)[number]> = {}
     for (const t of state.tags) m[t.id] = t
@@ -169,6 +173,7 @@ export function TodaySummary() {
   )
 }
 
+/** 集中と休憩の比率を横棒で表します。 */
 function SplitBar({ focus, brk }: { focus: number; brk: number }) {
   const total = focus + brk || 1
   const fp = (focus / total) * 100
@@ -187,6 +192,7 @@ function SplitBar({ focus, brk }: { focus: number; brk: number }) {
   )
 }
 
+/** 合計や区分別時間をカード形式で強調表示します。 */
 function BigStat({
   label,
   value,

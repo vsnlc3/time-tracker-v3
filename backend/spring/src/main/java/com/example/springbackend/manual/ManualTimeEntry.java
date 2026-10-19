@@ -17,6 +17,7 @@ import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "manual_time_entries")
+/** 時刻付きセッションとは別に登録する、日単位の手動時間記録です。 */
 public class ManualTimeEntry {
 
     @Id
@@ -61,6 +62,7 @@ public class ManualTimeEntry {
         this.breakSeconds = breakSeconds;
     }
 
+    /** タグ・活動日・時間内訳を更新します。 */
     public void update(
             Tag tag,
             LocalDate activityDate,

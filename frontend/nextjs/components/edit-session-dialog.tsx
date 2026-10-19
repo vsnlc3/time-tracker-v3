@@ -25,6 +25,7 @@ import {
 } from '@/lib/time'
 import { TagSelect } from '@/components/tag-select'
 
+/** セッションのタグと各区間を編集するダイアログです。 */
 export function EditSessionDialog({
   session,
   open,
@@ -102,6 +103,7 @@ export function EditSessionDialog({
   )
 }
 
+/** 区間の区分と開始・終了を編集し、隣接区間の調整を Store に依頼します。 */
 function SegmentEditor({
   seg,
   duration,
@@ -124,6 +126,7 @@ function SegmentEditor({
     seg.end != null ? epochToDatetimeLocal(seg.end) : '',
   )
 
+  // サーバーから更新された時刻を入力欄へ同期し、編集中のローカル値を古いままにしません。
   React.useEffect(() => {
     setStart(epochToDatetimeLocal(seg.start))
     setEnd(seg.end != null ? epochToDatetimeLocal(seg.end) : '')

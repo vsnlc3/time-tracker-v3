@@ -11,6 +11,7 @@ import {
 import { useStore } from '@/lib/store'
 import { TagDot } from '@/components/tag-badge'
 
+/** Store のタグ一覧から、色付き表示を持つタグ選択 UI を組み立てます。 */
 export function TagSelect({
   value,
   onChange,

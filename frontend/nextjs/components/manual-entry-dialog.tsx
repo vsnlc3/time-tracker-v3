@@ -22,6 +22,7 @@ import { dateKey } from '@/lib/time'
 import { TagSelect } from '@/components/tag-select'
 import { cn } from '@/lib/utils'
 
+/** 時刻付きセッションまたは時間内訳だけの手動記録を入力するダイアログです。 */
 export function ManualEntryDialog({
   open,
   onOpenChange,
@@ -32,20 +33,21 @@ export function ManualEntryDialog({
   const { state, addTimedRecord, addUntimedRecord } = useStore()
   const firstTag = state.tags[0]?.id ?? ''
 
-  // shared
+  // 時刻入力と時間だけの入力で共通して使うタグ・活動日です。
   const [tagId, setTagId] = React.useState(firstTag)
   const [day, setDay] = React.useState(dateKey())
 
-  // timed
+  // 開始・終了時刻から登録する形式の入力です。
   const [type, setType] = React.useState<SegmentType>('FOCUS')
   const [startTime, setStartTime] = React.useState('')
   const [endTime, setEndTime] = React.useState('')
   const [totalMin, setTotalMin] = React.useState('')
 
-  // untimed
+  // 時刻が分からない場合に登録する集中・休憩の内訳です。
   const [focusMin, setFocusMin] = React.useState('')
   const [breakMin, setBreakMin] = React.useState('')
 
+  // ダイアログを開いた時点の日付と初期タグを反映します。
   React.useEffect(() => {
     if (open) {
       setTagId((cur) => cur || firstTag)
@@ -53,6 +55,7 @@ export function ManualEntryDialog({
     }
   }, [open, firstTag])
 
+  /** 時刻形式の入力条件を確認し、残りの値を Store 側で補完して登録します。 */
   async function submitTimed() {
     const filled = [startTime, endTime, totalMin.trim()].filter(Boolean).length
     if (filled < 2) {
@@ -78,6 +81,7 @@ export function ManualEntryDialog({
     onOpenChange(false)
   }
 
+  /** 集中・休憩の分数を Store 経由で日単位の記録として登録します。 */
   async function submitUntimed() {
     const f = focusMin.trim() ? Number(focusMin) : 0
     const b = breakMin.trim() ? Number(breakMin) : 0

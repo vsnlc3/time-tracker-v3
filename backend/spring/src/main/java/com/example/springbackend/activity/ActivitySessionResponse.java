@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 
+/** セッションの API 応答です。進行中の場合の経過時間と子セグメントも含みます。 */
 public record ActivitySessionResponse(
         Long id,
         Long tagId,
@@ -18,6 +19,7 @@ public record ActivitySessionResponse(
         boolean active,
         List<SessionSegmentResponse> segments) {
 
+    /** エンティティとセグメントから、指定時点の経過時間を含む応答を組み立てます。 */
     public static ActivitySessionResponse from(
             ActivitySession session,
             List<SessionSegment> segments,

@@ -2,6 +2,7 @@ import type { Tag } from '@/lib/types'
 import { tagColorValue } from '@/lib/tag-colors'
 import { cn } from '@/lib/utils'
 
+/** タグ色をテーマパレットへ対応させた小さな印として表示します。 */
 export function TagDot({
   color,
   className,
@@ -18,6 +19,7 @@ export function TagDot({
   )
 }
 
+/** タグ色と名称を並べて表示し、削除済みタグにも代替表示を用意します。 */
 export function TagBadge({
   tag,
   className,

@@ -14,6 +14,7 @@ import com.example.springbackend.tag.TagRepository;
 import com.example.springbackend.user.User;
 
 @Service
+/** 手動時間記録の所有者確認と時間内訳の業務ルールを扱います。 */
 public class ManualTimeEntryService {
 
     private final ManualTimeEntryRepository entryRepository;
@@ -30,6 +31,7 @@ public class ManualTimeEntryService {
     }
 
     @Transactional(readOnly = true)
+    /** ログイン利用者の記録を日付で絞り込み、応答形式に変換します。 */
     public List<ManualTimeEntryResponse> findByActivityDate(LocalDate activityDate) {
         User user = currentUserService.requireCurrentUser();
         var entries = activityDate == null
@@ -42,6 +44,7 @@ public class ManualTimeEntryService {
     }
 
     @Transactional
+    /** 入力の時間内訳を検証して、手動記録を新規作成します。 */
     public ManualTimeEntryResponse create(ManualTimeEntryRequest request) {
         User user = currentUserService.requireCurrentUser();
         Tag tag = findOwnedTag(request.tagId(), user.getId());
@@ -55,6 +58,7 @@ public class ManualTimeEntryService {
     }
 
     @Transactional
+    /** 所有者を確認したうえで既存記録を更新します。 */
     public ManualTimeEntryResponse update(Long entryId, ManualTimeEntryRequest request) {
         User user = currentUserService.requireCurrentUser();
         ManualTimeEntry entry = entryRepository.findByIdAndTag_User_Id(entryId, user.getId())
@@ -71,6 +75,7 @@ public class ManualTimeEntryService {
     }
 
     @Transactional
+    /** 所有者の手動記録を削除します。 */
     public void delete(Long entryId) {
         User user = currentUserService.requireCurrentUser();
         ManualTimeEntry entry = entryRepository.findByIdAndTag_User_Id(entryId, user.getId())
@@ -84,6 +89,7 @@ public class ManualTimeEntryService {
     }
 
     private void validateBreakdown(Long totalSeconds, Long focusSeconds, Long breakSeconds) {
+        // 保存値の合計と内訳を一致させ、集計時に二重解釈が起きないようにします。
         if (totalSeconds == null || totalSeconds < 1) {
             throw new BadRequestException("totalSeconds must be at least 1");
         }

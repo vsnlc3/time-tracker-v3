@@ -17,6 +17,7 @@ import { useStore } from '@/lib/store'
 import { TAG_COLORS, tagColorValue } from '@/lib/tag-colors'
 import { cn } from '@/lib/utils'
 
+/** タグ作成・名称変更・色変更・削除に使う色選択 UI です。 */
 function ColorPicker({
   value,
   onChange,
@@ -47,6 +48,7 @@ function ColorPicker({
   )
 }
 
+/** 利用者のタグを一覧し、名前や色の変更と削除を行うダイアログです。 */
 export function TagsDialog({
   open,
   onOpenChange,
@@ -59,6 +61,7 @@ export function TagsDialog({
   const [newColor, setNewColor] = React.useState(TAG_COLORS[0].key)
   const [names, setNames] = React.useState<Record<string, string>>({})
 
+  // Store のタグ一覧に新しいタグが増えた時、対応する編集欄の初期値を補います。
   React.useEffect(() => {
     setNames((current) => {
       const next = { ...current }
@@ -69,6 +72,7 @@ export function TagsDialog({
     })
   }, [state.tags])
 
+  /** 入力内容を Store に渡し、失敗時は共通通知で理由を表示します。 */
   async function handleAdd() {
     const res = await addTag(newName, newColor)
     if (!res.ok) {

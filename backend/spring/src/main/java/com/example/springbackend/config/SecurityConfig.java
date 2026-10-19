@@ -24,6 +24,7 @@ import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 import org.springframework.util.StringUtils;
 
 @Configuration
+/** OAuth2 ログイン、API 認可、CSRF、ログアウトに関する Spring Security の設定です。 */
 public class SecurityConfig {
 
     private final String frontendBaseUrl;
@@ -33,6 +34,7 @@ public class SecurityConfig {
     }
 
     @Bean
+    /** SPA がヘッダーで送る CSRF トークンを検証できる Cookie リポジトリを構成します。 */
     public CookieCsrfTokenRepository csrfTokenRepository(
             @Value("${server.servlet.session.cookie.secure:false}") boolean secure,
             @Value("${server.servlet.session.cookie.same-site:lax}") String sameSite) {
@@ -45,6 +47,7 @@ public class SecurityConfig {
     }
 
     @Bean
+    /** 公開 URL と認証必須 URL、およびログイン・ログアウト時の応答を定義します。 */
     public SecurityFilterChain securityFilterChain(
             HttpSecurity http,
             CookieCsrfTokenRepository csrfTokenRepository) throws Exception {
@@ -91,8 +94,8 @@ public class SecurityConfig {
     }
 
     /**
-     * Keeps XOR masking for request attributes while accepting the raw value
-     * that an SPA reads from the XSRF-TOKEN cookie and sends in a header.
+     * CSRF トークンをリクエスト属性ではマスクしつつ、SPA が Cookie から読み取って
+     * ヘッダーに設定した生の値も検証できるようにします。
      */
     private static final class SpaCsrfTokenRequestHandler implements CsrfTokenRequestHandler {
 
@@ -100,6 +103,7 @@ public class SecurityConfig {
         private final CsrfTokenRequestHandler xor = new XorCsrfTokenRequestAttributeHandler();
 
         @Override
+        /** 画面表示向けのトークン属性をマスク形式でリクエストに設定します。 */
         public void handle(
                 HttpServletRequest request,
                 HttpServletResponse response,
@@ -108,6 +112,7 @@ public class SecurityConfig {
         }
 
         @Override
+        /** ヘッダーの有無に応じて、トークン値を適切な形式で取り出します。 */
         public String resolveCsrfTokenValue(HttpServletRequest request, CsrfToken csrfToken) {
             String headerValue = request.getHeader(csrfToken.getHeaderName());
             CsrfTokenRequestHandler handler = StringUtils.hasText(headerValue) ? this.plain : this.xor;

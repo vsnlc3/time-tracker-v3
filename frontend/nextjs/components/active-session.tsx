@@ -48,6 +48,7 @@ import { cn } from '@/lib/utils'
 
 const DEFAULT_NEXT = { FOCUS: 25, BREAK: 5 } as const
 
+/** 進行中の区間とセッションの時計、予定、操作をまとめて表示します。 */
 export function ActiveSession() {
   const {
     now,
@@ -102,7 +103,7 @@ export function ActiveSession() {
         )}
       >
         <CardContent className="flex flex-col items-center gap-6 pt-2">
-          {/* session meta */}
+          {/* セッションのタグと開始時刻 */}
           <div className="flex w-full items-center justify-between text-sm">
             <TagBadge tag={tagMap[activeSession.tagId]} />
             <span className="font-mono text-xs text-muted-foreground tabular-nums">
@@ -110,7 +111,7 @@ export function ActiveSession() {
             </span>
           </div>
 
-          {/* ring */}
+          {/* 現在の区間の経過時間と予定に対する進捗 */}
           <TimerRing
             progress={progress}
             variant={variant}
@@ -157,7 +158,7 @@ export function ActiveSession() {
             </p>
           )}
 
-          {/* actions */}
+          {/* 区間切り替え・予定延長・セッション終了 */}
           <div className="grid w-full gap-2 sm:grid-cols-2">
             <Button
               size="lg"
@@ -250,7 +251,7 @@ export function ActiveSession() {
         </CardContent>
       </Card>
 
-      {/* live session stats */}
+      {/* セッション全体の経過時間と集中・休憩の内訳 */}
       <Card>
         <CardContent className="flex flex-col gap-4">
           <div className="grid grid-cols-3 gap-3 text-center">
@@ -288,6 +289,7 @@ export function ActiveSession() {
   )
 }
 
+/** セッション全体などの補助指標をラベルと値で示します。 */
 function Stat({
   label,
   value,

@@ -1,7 +1,8 @@
 import { cn } from '@/lib/utils'
 
+/** SVG 円形タイマーの表示状態を指定します。 */
 interface TimerRingProps {
-  /** 0..1 以上。1 を超えると超過 */
+  /** 進捗率。1 を超える値は円周の描画範囲に収め、超過表示は別途指定します。 */
   progress: number
   variant: 'focus' | 'break'
   indeterminate?: boolean
@@ -15,6 +16,7 @@ const STROKE = 14
 const R = (SIZE - STROKE) / 2
 const C = 2 * Math.PI * R
 
+/** 進捗、区分色、超過状態を SVG の円周として表示する共通コンポーネントです。 */
 export function TimerRing({
   progress,
   variant,

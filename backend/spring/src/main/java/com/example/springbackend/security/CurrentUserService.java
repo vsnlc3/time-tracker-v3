@@ -10,6 +10,7 @@ import com.example.springbackend.user.User;
 import com.example.springbackend.user.UserService;
 
 @Service
+/** SecurityContext の Google ログイン情報をアプリケーションの利用者として解決します。 */
 public class CurrentUserService {
 
     private final UserService userService;
@@ -18,6 +19,11 @@ public class CurrentUserService {
         this.userService = userService;
     }
 
+    /**
+     * ログイン中の利用者を取得または登録します。
+     * @return Google アカウントと対応するアプリケーション上の利用者
+     * @throws UnauthorizedException 認証情報または必須の Google クレームがない場合
+     */
     public User requireCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || !(authentication.getPrincipal() instanceof OAuth2User oauth2User)) {

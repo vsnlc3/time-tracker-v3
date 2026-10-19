@@ -1,12 +1,14 @@
+/** 画面内で扱う時間区分です。API の同名型と値をそろえます。 */
 export type SegmentType = 'FOCUS' | 'BREAK'
 
+/** 画面で使うタグモデルです。API の ID は文字列に変換して保持します。 */
 export interface Tag {
   id: string
   name: string
   color: string
 }
 
-/** 活動セッション内部の FOCUS / BREAK 区間 */
+/** 活動セッション内を連続した FOCUS / BREAK の時間区間に分けたモデルです。 */
 export interface Segment {
   id: string
   type: SegmentType
@@ -18,7 +20,7 @@ export interface Segment {
   plannedMin: number | null
 }
 
-/** 活動セッション: 1 つの活動を継続している大きな時間枠 */
+/** 1 つの活動を継続している大きな時間枠です。複数の区間をまとめます。 */
 export interface Session {
   id: string
   tagId: string
@@ -33,7 +35,7 @@ export interface Session {
   segments: Segment[]
 }
 
-/** 時刻を持たない手動時間記録 (手動入力パターン4) */
+/** 開始・終了時刻を記録せず、日単位で合計時間だけを持つ手動記録です。 */
 export interface ManualRecord {
   id: string
   tagId: string
@@ -44,6 +46,7 @@ export interface ManualRecord {
   breakMin: number
 }
 
+/** API から取得したタグ・セッション・手動記録を画面用にまとめた状態です。 */
 export interface AppState {
   tags: Tag[]
   sessions: Session[]

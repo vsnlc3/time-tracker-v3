@@ -21,6 +21,7 @@ import com.example.springbackend.security.CurrentUserService;
 import com.example.springbackend.user.User;
 
 @Service
+/** セッションと手動記録を集約し、日次およびタグ別の時間を計算します。 */
 public class SummaryService {
 
     private final ActivitySessionRepository sessionRepository;
@@ -40,6 +41,11 @@ public class SummaryService {
     }
 
     @Transactional(readOnly = true)
+    /**
+     * 指定日の記録を利用者単位で読み込み、時間区分別とタグ別に合算します。
+     * @param activityDate 集計対象日
+     * @return 元記録と合計値を含む日次応答
+     */
     public DailySummaryResponse find(LocalDate activityDate) {
         User user = currentUserService.requireCurrentUser();
         Instant now = Instant.now();
@@ -57,6 +63,7 @@ public class SummaryService {
                 .map(ManualTimeEntryResponse::from)
                 .toList();
 
+        // 同じタグのセッションと手動記録を、挿入順を保つマップで合算します。
         Map<Long, TagAccumulator> byTag = new LinkedHashMap<>();
         long totalSeconds = 0;
         long focusSeconds = 0;

@@ -11,6 +11,7 @@ import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "users")
+/** ログイン利用者を表す JPA エンティティです。Google の subject を外部 ID として保持します。 */
 public class User {
 
     @Id
@@ -41,6 +42,7 @@ public class User {
         this.displayName = displayName;
     }
 
+    /** Google から取得した最新のプロフィール情報を反映します。 */
     public void updateProfile(String email, String displayName) {
         this.email = email;
         this.displayName = displayName;

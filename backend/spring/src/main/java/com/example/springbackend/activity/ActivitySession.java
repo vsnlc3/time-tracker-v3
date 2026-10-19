@@ -17,6 +17,7 @@ import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "activity_sessions")
+/** 1 回の活動記録を表すエンティティです。タグ、日付、開始・終了時刻、計画時間を保持します。 */
 public class ActivitySession {
 
     @Id
@@ -66,6 +67,7 @@ public class ActivitySession {
         this.plannedEndAt = plannedEndAt;
     }
 
+    /** セッションの記録値をまとめて更新します。 */
     public void update(
             Tag tag,
             LocalDate activityDate,
@@ -81,6 +83,7 @@ public class ActivitySession {
         this.plannedEndAt = plannedEndAt;
     }
 
+    /** 活動を終了した時刻を設定します。 */
     public void finish(Instant endedAt) {
         this.endedAt = endedAt;
     }

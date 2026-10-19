@@ -19,6 +19,7 @@ import com.example.springbackend.user.User;
 import com.example.springbackend.user.UserRepository;
 
 @Service
+/** セッションの所有者確認、時刻整合性、トランザクションをまとめて扱う業務層です。 */
 public class ActivitySessionService {
 
     private final ActivitySessionRepository sessionRepository;
@@ -44,6 +45,7 @@ public class ActivitySessionService {
     }
 
     @Transactional(readOnly = true)
+    /** 利用者のセッションを日付で絞り込み、画面用応答へ変換します。 */
     public List<ActivitySessionResponse> findByActivityDate(LocalDate activityDate) {
         User user = currentUserService.requireCurrentUser();
         Instant now = Instant.now();
@@ -58,6 +60,7 @@ public class ActivitySessionService {
     }
 
     @Transactional(readOnly = true)
+    /** 利用者の進行中セッションを返します。 */
     public ActivitySessionResponse findActive() {
         User user = currentUserService.requireCurrentUser();
         return sessionRepository.findFirstByTag_User_IdAndEndedAtIsNullOrderByStartedAtAsc(user.getId())
@@ -66,6 +69,7 @@ public class ActivitySessionService {
     }
 
     @Transactional
+    /** 新しいセッションと最初のセグメントを同じトランザクションで作成します。 */
     public ActivitySessionResponse start(StartActivitySessionRequest request) {
         User currentUser = lockCurrentUser();
         Tag tag = findOwnedTag(request.tagId(), currentUser.getId());
@@ -95,6 +99,7 @@ public class ActivitySessionService {
     }
 
     @Transactional
+    /** 指定された開始・終了時刻の組み合わせを解決して手動セッションを作成します。 */
     public ActivitySessionResponse createTimedManual(TimedManualSessionRequest request) {
         User currentUser = lockCurrentUser();
         Tag tag = findOwnedTag(request.tagId(), currentUser.getId());
@@ -119,6 +124,7 @@ public class ActivitySessionService {
     }
 
     @Transactional
+    /** セッションと唯一の未終了セグメントを同じ時刻で閉じます。 */
     public ActivitySessionResponse finish(Long sessionId) {
         User currentUser = lockCurrentUser();
         ActivitySession session = findOwnedSession(sessionId, currentUser.getId());
@@ -136,6 +142,7 @@ public class ActivitySessionService {
     }
 
     @Transactional
+    /** 現在のセグメントを閉じ、種別が変わる場合は次のセグメントを作成します。 */
     public ActivitySessionResponse switchSegment(Long sessionId, SegmentSwitchRequest request) {
         User currentUser = lockCurrentUser();
         ActivitySession session = findOwnedSession(sessionId, currentUser.getId());
@@ -166,6 +173,7 @@ public class ActivitySessionService {
     }
 
     @Transactional
+    /** セッションのタグや時刻を更新し、セグメントとの境界条件を再検証します。 */
     public ActivitySessionResponse update(Long sessionId, ActivitySessionUpdateRequest request) {
         User currentUser = lockCurrentUser();
         ActivitySession session = findOwnedSession(sessionId, currentUser.getId());
@@ -194,6 +202,7 @@ public class ActivitySessionService {
     }
 
     @Transactional
+    /** 所有者のセッションを削除します。 */
     public void delete(Long sessionId) {
         User currentUser = lockCurrentUser();
         ActivitySession session = findOwnedSession(sessionId, currentUser.getId());
@@ -201,6 +210,7 @@ public class ActivitySessionService {
     }
 
     @Transactional
+    /** 1 セグメントの時刻や種別を更新し、隣接セグメントとセッション境界をそろえます。 */
     public SessionSegmentResponse updateSegment(Long segmentId, SessionSegmentUpdateRequest request) {
         User currentUser = lockCurrentUser();
         SessionSegment segment = findOwnedSegment(segmentId, currentUser.getId());
@@ -211,9 +221,8 @@ public class ActivitySessionService {
         boolean first = index == 0;
         boolean last = index == segments.size() - 1;
 
-        // Every segment except the last one must have a boundary for the next
-        // segment. Without this guard, a null value would be propagated to the
-        // next segment and fail later with a NullPointerException during sort.
+        // 最後以外の区間には次の区間との境界が必要です。
+        // ここで null を拒否しないと、後続区間へ伝わってソート時に失敗します。
         if (!last && request.endedAt() == null) {
             throw new BadRequestException("A non-final segment must have an end time");
         }
@@ -263,6 +272,7 @@ public class ActivitySessionService {
     }
 
     @Transactional
+    /** セグメントを削除し、前後のセグメントの境界をつなぎ直します。 */
     public void deleteSegment(Long segmentId) {
         User currentUser = lockCurrentUser();
         SessionSegment segment = findOwnedSegment(segmentId, currentUser.getId());
@@ -290,6 +300,7 @@ public class ActivitySessionService {
 
     private User lockCurrentUser() {
         User currentUser = currentUserService.requireCurrentUser();
+        // 同一利用者の更新を直列化し、重複時間の検査と保存が競合するのを防ぎます。
         return userRepository.findByIdForUpdate(currentUser.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
     }
@@ -314,6 +325,7 @@ public class ActivitySessionService {
     }
 
     private void assertNoOverlap(Long userId, Instant startedAt, Instant endedAt, Long excludedSessionId) {
+        // 終了時刻 null の進行中セッションも含め、同じ利用者の全記録と照合します。
         boolean overlaps = sessionRepository.findAllByTag_User_IdOrderByStartedAtAsc(userId).stream()
                 .filter(session -> !session.getId().equals(excludedSessionId))
                 .anyMatch(session -> overlaps(
@@ -327,6 +339,7 @@ public class ActivitySessionService {
     }
 
     private boolean overlaps(Instant leftStart, Instant leftEnd, Instant rightStart, Instant rightEnd) {
+        // 境界が接するだけの連続記録は許可し、期間内部に交わる場合だけ重複とします。
         boolean leftBeforeRightEnd = rightEnd == null || leftStart.isBefore(rightEnd);
         boolean rightBeforeLeftEnd = leftEnd == null || rightStart.isBefore(leftEnd);
         return leftBeforeRightEnd && rightBeforeLeftEnd;
@@ -400,6 +413,7 @@ public class ActivitySessionService {
             throw new BadRequestException("Segments must start with the activity session");
         }
 
+        // 時系列順に隣接境界を照合し、セグメントの隙間・重なりを防ぎます。
         Instant previousEnd = null;
         for (int index = 0; index < segments.size(); index++) {
             SessionSegment segment = segments.get(index);

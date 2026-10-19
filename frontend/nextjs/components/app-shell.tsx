@@ -14,6 +14,7 @@ import { ManualEntryDialog } from '@/components/manual-entry-dialog'
 import { TagsDialog } from '@/components/tags-dialog'
 import { cn } from '@/lib/utils'
 
+/** ブラウザーの Web Audio API で、予定到達時の短い通知音を鳴らします。 */
 function playChime() {
   try {
     const Ctx =
@@ -38,14 +39,16 @@ function playChime() {
     })
     setTimeout(() => ctx.close(), 1200)
   } catch {
-    // audio not available
+    // AudioContext が使えない環境では、画面通知だけを表示します。
   }
 }
 
+/** Store の時計と計画時間を監視し、区間・セッションごとに一度だけ通知します。 */
 function useReachedNotifications() {
   const { activeSession, activeSegment, now } = useStore()
   const fired = React.useRef<Set<string>>(new Set())
 
+  // now が進むたびに到達判定し、fired によって同じ計画値への通知を重複させません。
   React.useEffect(() => {
     if (activeSegment?.plannedMin) {
       const key = `${activeSegment.id}:${activeSegment.plannedMin}`
@@ -75,6 +78,7 @@ function useReachedNotifications() {
   }, [now, activeSegment, activeSession])
 }
 
+/** 認証状態に応じてログイン画面またはタブ付きアプリ画面を表示する Client Component です。 */
 export function AppShell() {
   const { hydrated, authenticated, user, activeSession, logout } = useStore()
   const [manualOpen, setManualOpen] = React.useState(false)
@@ -182,6 +186,7 @@ export function AppShell() {
   )
 }
 
+/** Spring Boot の OAuth2 開始 URL へ移動するログインカードです。 */
 function CardLogin() {
   return (
     <div className="rounded-xl border bg-card p-8 text-center shadow-sm">

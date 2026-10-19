@@ -36,6 +36,7 @@ import {
 import { TagBadge } from '@/components/tag-badge'
 import { EditSessionDialog } from '@/components/edit-session-dialog'
 
+/** 履歴一覧で時刻付きセッションと時刻なし記録を同じ日別リストに並べる表示モデルです。 */
 type Row =
   | { kind: 'session'; at: number; day: string; session: Session }
   | {
@@ -48,6 +49,7 @@ type Row =
       breakMin: number
     }
 
+/** 保存済みセッションと手動記録を日付ごとにまとめて表示・編集します。 */
 export function RecordsView() {
   const { state, now, deleteSession, deleteManualRecord } = useStore()
   const tagMap = useTagMap()
@@ -57,6 +59,8 @@ export function RecordsView() {
     ? state.sessions.find((session) => session.id === editing.id) ?? null
     : null
 
+  // 異なる記録形式を共通行へ変換して日付ごとに集約します。
+  // 依存データまたは時計が変わった時だけ、並び順と日別合計を作り直します。
   const groups = React.useMemo(() => {
     const rows: Row[] = []
     for (const s of state.sessions) {
@@ -96,6 +100,7 @@ export function RecordsView() {
       })
   }, [state.sessions, state.manualRecords, now])
 
+  /** 選択中セッションを編集ダイアログへ渡します。 */
   function openEdit(s: Session) {
     setEditing(s)
     setEditOpen(true)
@@ -166,6 +171,7 @@ export function RecordsView() {
   )
 }
 
+/** 時刻付きセッションの履歴カードを表示します。 */
 function SessionRow({
   session,
   now,
@@ -219,6 +225,7 @@ function SessionRow({
   )
 }
 
+/** 時刻を持たない手動記録の履歴カードを表示します。 */
 function ManualRow({
   tag,
   focusMin,
@@ -254,6 +261,7 @@ function ManualRow({
   )
 }
 
+/** 確認ダイアログを挟んで削除コールバックを実行するボタンです。 */
 function DeleteButton({
   title,
   onConfirm,

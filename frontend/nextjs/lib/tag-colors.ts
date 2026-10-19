@@ -1,4 +1,4 @@
-/** カテゴリ用のデータ駆動カラーパレット (テーマトークンとは別) */
+/** タグ選択 UI と表示で共有する、サーバー保存キーと色値の対応表です。 */
 export const TAG_COLORS: { key: string; label: string; value: string }[] = [
   { key: 'green', label: 'グリーン', value: 'oklch(0.745 0.13 168)' },
   { key: 'sky', label: 'スカイ', value: 'oklch(0.7 0.12 230)' },
@@ -10,6 +10,7 @@ export const TAG_COLORS: { key: string; label: string; value: string }[] = [
 
 const map = new Map(TAG_COLORS.map((c) => [c.key, c.value]))
 
+/** 保存済みの色キーに対応する表示色を返し、不明なキーは既定色にします。 */
 export function tagColorValue(key: string): string {
   return map.get(key) ?? TAG_COLORS[0].value
 }

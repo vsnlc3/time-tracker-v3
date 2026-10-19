@@ -43,10 +43,12 @@ import { dateKey, rangesOverlap, timeStrToEpoch } from './time'
 const EMPTY_STATE: AppState = { tags: [], sessions: [], manualRecords: [] }
 const MINUTE_SECONDS = 60
 
+/** 画面操作が成功したか、利用者向けメッセージ付きで返す結果です。 */
 export type Result = { ok: true } | { ok: false; error: string }
 const ok: Result = { ok: true }
 const fail = (error: string): Result => ({ ok: false, error })
 
+/** 計測開始時に画面から Store へ渡す値です。時間は分単位で扱います。 */
 export interface StartSessionInput {
   tagId: string
   initialType: SegmentType
@@ -54,6 +56,7 @@ export interface StartSessionInput {
   sessionPlannedMin: number | null
 }
 
+/** 時刻付きの手動記録を作るフォーム値です。未入力の値は省略します。 */
 export interface TimedRecordInput {
   tagId: string
   dayKey: string
@@ -63,6 +66,7 @@ export interface TimedRecordInput {
   totalMin?: number
 }
 
+/** Provider が画面に共有する認証・データ・操作 API の契約です。 */
 interface StoreValue {
   hydrated: boolean
   authenticated: boolean | null
@@ -100,12 +104,14 @@ interface StoreValue {
 
 const StoreContext = React.createContext<StoreValue | null>(null)
 
+/** StoreProvider 配下から共有状態と更新操作を読み取るカスタム Hook です。 */
 export function useStore(): StoreValue {
   const ctx = React.useContext(StoreContext)
   if (!ctx) throw new Error('useStore must be used within StoreProvider')
   return ctx
 }
 
+/** API 例外を画面表示に使う日本語メッセージへ変換します。 */
 function apiErrorMessage(error: unknown): string {
   if (error instanceof ApiRequestError && error.status === 401) {
     return 'ログイン状態が切れました。もう一度ログインしてください。'
@@ -114,10 +120,12 @@ function apiErrorMessage(error: unknown): string {
   return '予期しないエラーが発生しました。'
 }
 
+/** 数値 ID と null 許容の色を、画面モデルのタグへ変換します。 */
 function toTag(tag: { id: number; displayName: string; color?: string | null }): Tag {
   return { id: String(tag.id), name: tag.displayName, color: tag.color || 'green' }
 }
 
+/** ISO 時刻と秒単位の API 応答を、epoch ミリ秒・分単位の画面モデルへ写します。 */
 function toSession(session: ApiActivitySession): Session {
   return {
     id: String(session.id),
@@ -143,6 +151,7 @@ function toSession(session: ApiActivitySession): Session {
   }
 }
 
+/** 手動記録の API 応答を、画面内の分単位モデルへ変換します。 */
 function toManualRecord(entry: ApiManualTimeEntry): ManualRecord {
   return {
     id: String(entry.id),
@@ -154,14 +163,17 @@ function toManualRecord(entry: ApiManualTimeEntry): ManualRecord {
   }
 }
 
+/** epoch ミリ秒を API に送る UTC ISO 文字列に変換します。 */
 function iso(epoch: number) {
   return new Date(epoch).toISOString()
 }
 
+/** 画面で扱う分を API の秒単位へ変換し、未設定値は送信しません。 */
 function secondsFromMinutes(minutes: number | null) {
   return minutes == null ? undefined : Math.round(minutes * MINUTE_SECONDS)
 }
 
+/** 画面モデルのセッションと部分変更を、API の更新入力へ組み立てます。 */
 function sessionInput(
   session: Session,
   changes: Partial<Pick<Session, 'tagId' | 'start' | 'end' | 'plannedMin'>>,
@@ -173,8 +185,7 @@ function sessionInput(
     planned == null && session.plannedEndAt != null ? iso(session.plannedEndAt) : undefined
   return {
     tagId: Number(changes.tagId ?? session.tagId),
-    // activityDate is an explicit business date and must not be inferred
-    // from a timestamp when editing a manually entered session.
+    // 活動日は業務上の明示値なので、手入力セッションの時刻から推測せず保持します。
     activityDate: session.activityDate,
     startedAt: iso(start),
     ...(end == null ? {} : { endedAt: iso(end) }),
@@ -183,6 +194,7 @@ function sessionInput(
   }
 }
 
+/** セグメントの部分変更を API の更新入力へ組み立てます。 */
 function segmentInput(
   segment: Segment,
   changes: Partial<Pick<Segment, 'type' | 'start' | 'end' | 'plannedMin'>>,
@@ -198,6 +210,10 @@ function segmentInput(
   }
 }
 
+/**
+ * API データと画面操作を React Context で共有する Client Component です。
+ * 認証後にサーバーの値を取得し、更新後も再取得して表示状態をそろえます。
+ */
 export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = React.useState<AppState>(EMPTY_STATE)
   const [summary, setSummary] = React.useState<ApiSummary | null>(null)
@@ -206,6 +222,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [hydrated, setHydrated] = React.useState(false)
   const [now, setNow] = React.useState(() => Date.now())
 
+  // 一覧・進行中セッション・今日の集計を並行取得し、同じ画面状態へ反映します。
+  // useCallback で参照を安定させ、下の effect が不要に再実行されるのを防ぎます。
   const refreshAll = React.useCallback(async () => {
     const today = dateKey()
     const [tags, sessions, manualRecords, active, todaySummary] = await Promise.all([
@@ -235,6 +253,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     return fail(apiErrorMessage(error))
   }, [])
 
+  // CSRF Cookie とログイン利用者を確認してから初期データを読み込みます。
+  // Provider の破棄後に通信が完了した場合は state を更新しないようにします。
   React.useEffect(() => {
     let cancelled = false
     async function load() {
@@ -257,6 +277,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     }
   }, [refreshAll])
 
+  // ログイン中は一定間隔でサーバー状態を読み直し、別タブや外部更新を画面へ反映します。
   React.useEffect(() => {
     if (!authenticated) return
     const id = window.setInterval(() => {
@@ -265,16 +286,19 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     return () => window.clearInterval(id)
   }, [authenticated, handleFailure, refreshAll])
 
+  // 進行中タイマーの表示を更新するための時計です。サーバーの再取得とは独立して刻みます。
   React.useEffect(() => {
     setNow(Date.now())
     const id = window.setInterval(() => setNow(Date.now()), 1000)
     return () => window.clearInterval(id)
   }, [])
 
+  // state が変わった場合だけ進行中セッションを再計算します。
   const activeSession = React.useMemo(
     () => state.sessions.find((session) => session.end === null) ?? null,
     [state.sessions],
   )
+  // 進行中セッション内で終了時刻がない区間を表示対象にします。
   const activeSegment = React.useMemo(
     () => activeSession?.segments.find((segment) => segment.end === null) ?? null,
     [activeSession],
@@ -291,6 +315,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
     [state.sessions],
   )
 
+  /** API 操作後に共通データを再取得し、通信エラーを Result にそろえます。 */
   const runMutation = React.useCallback(
     async (mutation: () => Promise<unknown>): Promise<Result> => {
       try {
@@ -586,8 +611,10 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>
 }
 
+/** タグ ID をキーにした参照用辞書を作るカスタム Hook です。 */
 export function useTagMap(): Record<string, Tag> {
   const { state } = useStore()
+  // タグ一覧が変わらない間は辞書を再生成せず、表示側の不要な再描画を抑えます。
   return React.useMemo(() => {
     const map: Record<string, Tag> = {}
     for (const tag of state.tags) map[tag.id] = tag

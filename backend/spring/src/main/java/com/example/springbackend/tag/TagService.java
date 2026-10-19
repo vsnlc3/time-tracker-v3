@@ -14,6 +14,7 @@ import com.example.springbackend.security.CurrentUserService;
 import com.example.springbackend.user.User;
 
 @Service
+/** タグの所有者、重複、参照中データ、既定タグに関する業務ルールを扱います。 */
 public class TagService {
 
     private final TagRepository tagRepository;
@@ -33,6 +34,7 @@ public class TagService {
     }
 
     @Transactional
+    /** 利用者にタグがなければ既定タグを用意してから一覧を返します。 */
     public List<TagResponse> findAllForCurrentUser() {
         User user = currentUserService.requireCurrentUser();
         ensureDefaultTags(user);
@@ -42,6 +44,7 @@ public class TagService {
     }
 
     @Transactional
+    /** 表示名と色を正規化し、利用者内で重複しないタグを作成します。 */
     public TagResponse create(TagRequest request) {
         User user = currentUserService.requireCurrentUser();
         String displayName = normalizedDisplayName(request);
@@ -52,6 +55,7 @@ public class TagService {
     }
 
     @Transactional
+    /** 所有者と表示名の重複を確認し、タグを更新します。 */
     public TagResponse update(Long tagId, TagRequest request) {
         User user = currentUserService.requireCurrentUser();
         Tag tag = tagRepository.findByIdAndUser_Id(tagId, user.getId())
@@ -66,6 +70,7 @@ public class TagService {
     }
 
     @Transactional
+    /** 参照中でないことと最後の1件でないことを確認して削除します。 */
     public void delete(Long tagId) {
         User user = currentUserService.requireCurrentUser();
         Tag tag = tagRepository.findByIdAndUser_Id(tagId, user.getId())
@@ -101,6 +106,7 @@ public class TagService {
 
     private void ensureDefaultTags(User user) {
         if (tagRepository.countByUser_Id(user.getId()) > 0) return;
+        // 初回の一覧取得時に最小限の分類を作り、画面が空の状態から始まらないようにします。
         tagRepository.saveAll(List.of(
                 new Tag(user, "仕事", "green"),
                 new Tag(user, "勉強", "sky"),

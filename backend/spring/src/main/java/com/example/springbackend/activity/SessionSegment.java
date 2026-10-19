@@ -16,6 +16,7 @@ import jakarta.persistence.Table;
 
 @Entity
 @Table(name = "session_segments")
+/** セッション内の集中・休憩などの連続した区間を表すエンティティです。 */
 public class SessionSegment {
 
     @Id
@@ -61,6 +62,7 @@ public class SessionSegment {
         this.plannedDurationSeconds = plannedDurationSeconds;
     }
 
+    /** セグメントの種別・範囲・計画時間を更新します。 */
     public void update(
             SegmentType segmentType,
             Instant startedAt,
@@ -72,10 +74,12 @@ public class SessionSegment {
         this.plannedDurationSeconds = plannedDurationSeconds;
     }
 
+    /** セグメントの終了時刻を設定します。 */
     public void end(Instant endedAt) {
         this.endedAt = endedAt;
     }
 
+    /** セグメントの開始時刻を設定します。 */
     public void startAt(Instant startedAt) {
         this.startedAt = startedAt;
     }

@@ -23,6 +23,7 @@ import { useStore } from '@/lib/store'
 import { TagSelect } from '@/components/tag-select'
 import { cn } from '@/lib/utils'
 
+/** タグ・初期区分・予定時間を受け取り、新しい計測を開始するフォームです。 */
 export function StartForm() {
   const { state, startSession } = useStore()
   const [tagId, setTagId] = React.useState(state.tags[0]?.id ?? '')
@@ -32,15 +33,18 @@ export function StartForm() {
   const [sessionPlanned, setSessionPlanned] = React.useState('')
   const editedRef = React.useRef(false)
 
+  // 初回データ取得後にタグ選択を補います。ユーザーが選んだ値は上書きしません。
   React.useEffect(() => {
     if (!tagId && state.tags[0]) setTagId(state.tags[0].id)
   }, [state.tags, tagId])
 
+  /** 区分変更に応じて、手動編集前なら区分ごとの初期予定時間を切り替えます。 */
   function handleType(next: SegmentType) {
     setInitialType(next)
     if (!editedRef.current) setSegPlanned(next === 'FOCUS' ? '25' : '5')
   }
 
+  /** 入力を画面側で検証してから Store に開始操作を依頼します。 */
   async function handleStart() {
     if (!tagId) {
       toast.error('タグを選択してください。')

@@ -1,8 +1,9 @@
 import type { Segment, Session } from './types'
 
+/** 1 分を表すミリ秒数です。画面モデルの時間計算で使います。 */
 export const MINUTE = 60_000
 
-/** epoch ms を "HH:MM" 表記に */
+/** ローカル時刻の epoch ミリ秒を時計表示用の `HH:MM` に整形します。 */
 export function formatClock(epoch: number): string {
   const d = new Date(epoch)
   return `${String(d.getHours()).padStart(2, '0')}:${String(
@@ -10,7 +11,7 @@ export function formatClock(epoch: number): string {
   ).padStart(2, '0')}`
 }
 
-/** ミリ秒を "H:MM:SS" / "MM:SS" のデジタル表記に (タイマー表示用) */
+/** 経過ミリ秒をタイマー用の `H:MM:SS` または `MM:SS` に整形します。 */
 export function formatDigital(ms: number): string {
   const total = Math.max(0, Math.floor(ms / 1000))
   const h = Math.floor(total / 3600)
@@ -22,7 +23,7 @@ export function formatDigital(ms: number): string {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
 }
 
-/** ミリ秒を "2時間32分" / "35分" の人間向け表記に */
+/** 経過ミリ秒を分単位に丸め、日本語の時間表示に整形します。 */
 export function formatHuman(ms: number): string {
   const totalMin = Math.round(ms / MINUTE)
   const h = Math.floor(totalMin / 60)
@@ -32,29 +33,31 @@ export function formatHuman(ms: number): string {
   return `${m}分`
 }
 
-/** 区間の実績時間 (ms)。進行中は now まで */
+/** 区間の実績ミリ秒を返します。終了前の区間は指定時刻 `now` までとして計算します。 */
 export function segmentDuration(seg: Segment, now: number): number {
   return (seg.end ?? now) - seg.start
 }
 
-/** セッションの実績時間 (ms)。進行中は now まで */
+/** セッションの実績ミリ秒を返します。進行中は指定時刻 `now` までとして計算します。 */
 export function sessionDuration(session: Session, now: number): number {
   return (session.end ?? now) - session.start
 }
 
+/** セッションに含まれる FOCUS 区間の実績時間を合算します。 */
 export function focusMs(session: Session, now: number): number {
   return session.segments
     .filter((s) => s.type === 'FOCUS')
     .reduce((sum, s) => sum + segmentDuration(s, now), 0)
 }
 
+/** セッションに含まれる BREAK 区間の実績時間を合算します。 */
 export function breakMs(session: Session, now: number): number {
   return session.segments
     .filter((s) => s.type === 'BREAK')
     .reduce((sum, s) => sum + segmentDuration(s, now), 0)
 }
 
-/** 対象日キー YYYY-MM-DD (ローカルタイム) */
+/** epoch ミリ秒をローカル日付の `YYYY-MM-DD` キーに変換します。 */
 export function dateKey(epoch: number = Date.now()): string {
   const d = new Date(epoch)
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
@@ -63,7 +66,7 @@ export function dateKey(epoch: number = Date.now()): string {
   )}-${String(d.getDate()).padStart(2, '0')}`
 }
 
-/** YYYY-MM-DD を "M月D日(曜)" に */
+/** `YYYY-MM-DD` の日付キーを日本語の月日・曜日表示に変換します。 */
 export function formatDateLabel(key: string): string {
   const [y, m, d] = key.split('-').map(Number)
   const date = new Date(y, m - 1, d)
@@ -71,14 +74,14 @@ export function formatDateLabel(key: string): string {
   return `${m}月${d}日 (${wd})`
 }
 
-/** "HH:MM" 文字列を対象日の epoch ms に。翌日跨ぎは end> start で +1日 */
+/** 対象日の `HH:MM` をローカル時刻の epoch ミリ秒に変換します。 */
 export function timeStrToEpoch(dayKey: string, time: string): number {
   const [y, mo, d] = dayKey.split('-').map(Number)
   const [h, mi] = time.split(':').map(Number)
   return new Date(y, mo - 1, d, h, mi, 0, 0).getTime()
 }
 
-/** epoch を <input type="datetime-local"> 用に */
+/** epoch ミリ秒をローカル時刻の `datetime-local` 入力値に変換します。 */
 export function epochToDatetimeLocal(epoch: number): string {
   const d = new Date(epoch)
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(
@@ -90,11 +93,12 @@ export function epochToDatetimeLocal(epoch: number): string {
   )}:${String(d.getMinutes()).padStart(2, '0')}`
 }
 
+/** `datetime-local` のローカル時刻文字列を epoch ミリ秒に変換します。 */
 export function datetimeLocalToEpoch(value: string): number {
   return new Date(value).getTime()
 }
 
-/** 2 つの時間帯 [aStart,aEnd] と [bStart,bEnd] が重複するか */
+/** 2 つの半開区間が重なるかを判定します。終了と次の開始が同じ時刻なら重複しません。 */
 export function rangesOverlap(
   aStart: number,
   aEnd: number,

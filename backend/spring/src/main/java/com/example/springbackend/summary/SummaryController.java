@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/summary")
+/** 日次集計 API を提供します。 */
 public class SummaryController {
 
     private final SummaryService summaryService;
@@ -19,6 +20,7 @@ public class SummaryController {
     }
 
     @GetMapping
+    /** 指定日の時間集計を返します。 */
     public DailySummaryResponse find(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate activityDate) {
         return summaryService.find(activityDate);

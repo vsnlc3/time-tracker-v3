@@ -9,12 +9,17 @@ export const metadata: Metadata = {
     '仕事・勉強・瞑想などの活動時間を、FOCUS と BREAK に分けて記録・可視化するタイムトラッカー。',
 }
 
+/** ブラウザーの表示色とテーマ色を Next.js に伝えます。 */
 export const viewport: Viewport = {
   colorScheme: 'dark',
   themeColor: '#14161c',
   userScalable: false,
 }
 
+/**
+ * 全ページ共通の HTML 骨格とフォント、通知領域を定義する Server Component です。
+ * クライアント状態を持つ画面部分は children 側の Client Component に委ねます。
+ */
 export default function RootLayout({
   children,
 }: Readonly<{

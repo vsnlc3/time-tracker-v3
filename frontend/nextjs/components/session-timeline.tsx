@@ -3,6 +3,7 @@ import type { Session } from '@/lib/types'
 import { formatClock, formatHuman, segmentDuration } from '@/lib/time'
 import { cn } from '@/lib/utils'
 
+/** セッションに含まれる区間を時系列で並べ、時刻と経過時間を表示します。 */
 export function SessionTimeline({
   session,
   now,

@@ -19,6 +19,7 @@ import jakarta.persistence.UniqueConstraint;
 @Table(name = "tags", uniqueConstraints = @UniqueConstraint(
         name = "uk_tags_user_id_display_name",
         columnNames = {"user_id", "display_name"}))
+/** 利用者ごとの活動分類を表すエンティティです。 */
 public class Tag {
 
     @Id
@@ -50,6 +51,7 @@ public class Tag {
         this.colorKey = colorKey;
     }
 
+    /** 表示名と色を更新します。 */
     public void update(String displayName, String colorKey) {
         this.displayName = displayName;
         this.colorKey = colorKey;
