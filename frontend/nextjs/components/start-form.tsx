@@ -20,12 +20,14 @@ import {
 } from '@/components/ui/toggle-group'
 import type { SegmentType } from '@/lib/types'
 import { useStore } from '@/lib/store'
+import { useAlarm } from '@/lib/alarm-context'
 import { TagSelect } from '@/components/tag-select'
 import { cn } from '@/lib/utils'
 
 /** タグ・初期区分・予定時間を受け取り、新しい計測を開始するフォームです。 */
 export function StartForm() {
   const { state, startSession } = useStore()
+  const { prepareAudio } = useAlarm()
   const [tagId, setTagId] = React.useState(state.tags[0]?.id ?? '')
   const [initialType, setInitialType] = React.useState<SegmentType>('FOCUS')
   const [segPlanned, setSegPlanned] = React.useState('25')
@@ -60,6 +62,8 @@ export function StartForm() {
       toast.error('セッション予定時間が正しくありません。')
       return
     }
+    // API通信より先に、クリックのユーザー操作中にWeb Audioを有効化します。
+    void prepareAudio()
     const res = await startSession({
       tagId,
       initialType,

@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { ListPlus, LogOut, Tags, Timer } from 'lucide-react'
+import { Bell, ListPlus, LogOut, Tags, Timer } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -12,78 +12,25 @@ import { TodaySummary } from '@/components/today-summary'
 import { RecordsView } from '@/components/records-view'
 import { ManualEntryDialog } from '@/components/manual-entry-dialog'
 import { TagsDialog } from '@/components/tags-dialog'
+import { AlarmSettingsDialog } from '@/components/alarm-settings-dialog'
+import { useAlarm } from '@/lib/alarm-context'
 import { cn } from '@/lib/utils'
-
-/** ブラウザーの Web Audio API で、予定到達時の短い通知音を鳴らします。 */
-function playChime() {
-  try {
-    const Ctx =
-      window.AudioContext ||
-      (window as unknown as { webkitAudioContext: typeof AudioContext })
-        .webkitAudioContext
-    if (!Ctx) return
-    const ctx = new Ctx()
-    const notes = [880, 1174.66]
-    notes.forEach((freq, i) => {
-      const osc = ctx.createOscillator()
-      const gain = ctx.createGain()
-      osc.type = 'sine'
-      osc.frequency.value = freq
-      const t = ctx.currentTime + i * 0.18
-      gain.gain.setValueAtTime(0.0001, t)
-      gain.gain.exponentialRampToValueAtTime(0.2, t + 0.02)
-      gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.35)
-      osc.connect(gain).connect(ctx.destination)
-      osc.start(t)
-      osc.stop(t + 0.4)
-    })
-    setTimeout(() => ctx.close(), 1200)
-  } catch {
-    // AudioContext が使えない環境では、画面通知だけを表示します。
-  }
-}
-
-/** Store の時計と計画時間を監視し、区間・セッションごとに一度だけ通知します。 */
-function useReachedNotifications() {
-  const { activeSession, activeSegment, now } = useStore()
-  const fired = React.useRef<Set<string>>(new Set())
-
-  // now が進むたびに到達判定し、fired によって同じ計画値への通知を重複させません。
-  React.useEffect(() => {
-    if (activeSegment?.plannedMin) {
-      const key = `${activeSegment.id}:${activeSegment.plannedMin}`
-      const elapsed = now - activeSegment.start
-      if (elapsed >= activeSegment.plannedMin * 60_000 && !fired.current.has(key)) {
-        fired.current.add(key)
-        playChime()
-        toast(
-          activeSegment.type === 'FOCUS'
-            ? 'FOCUS の予定時間に到達しました'
-            : 'BREAK の予定時間に到達しました',
-          { description: '継続・延長・状態の切り替えを選べます。' },
-        )
-      }
-    }
-    if (activeSession?.plannedMin) {
-      const key = `${activeSession.id}:sess:${activeSession.plannedMin}`
-      const elapsed = now - activeSession.start
-      if (elapsed >= activeSession.plannedMin * 60_000 && !fired.current.has(key)) {
-        fired.current.add(key)
-        playChime()
-        toast('セッションの予定時間に到達しました', {
-          description: 'お疲れさまでした。区切りをつけましょう。',
-        })
-      }
-    }
-  }, [now, activeSegment, activeSession])
-}
 
 /** 認証状態に応じてログイン画面またはタブ付きアプリ画面を表示する Client Component です。 */
 export function AppShell() {
-  const { hydrated, authenticated, user, activeSession, logout } = useStore()
+  const {
+    hydrated,
+    dataReady,
+    bootstrapError,
+    authenticated,
+    user,
+    activeSession,
+    logout,
+  } = useStore()
+  const { clearForLogout } = useAlarm()
   const [manualOpen, setManualOpen] = React.useState(false)
   const [tagsOpen, setTagsOpen] = React.useState(false)
-  useReachedNotifications()
+  const [alarmSettingsOpen, setAlarmSettingsOpen] = React.useState(false)
 
   if (!hydrated) {
     return (
@@ -94,10 +41,42 @@ export function AppShell() {
     )
   }
 
-  if (authenticated !== true) {
+  if (authenticated === null) {
+    return (
+      <div className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col justify-center gap-4 px-4 py-6 sm:py-10">
+        <div className="rounded-xl border bg-card p-6 text-center">
+          <h1 className="font-semibold">接続を確認できません</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {bootstrapError ?? 'ログイン状態を確認できませんでした。'}
+          </p>
+          <Button className="mt-4" onClick={() => window.location.reload()}>
+            再読み込み
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  if (authenticated === false) {
     return (
       <div className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col justify-center gap-6 px-4 py-6 sm:py-10">
         <CardLogin />
+      </div>
+    )
+  }
+
+  if (!dataReady) {
+    return (
+      <div className="mx-auto flex min-h-dvh w-full max-w-2xl flex-col justify-center gap-4 px-4 py-6 sm:py-10">
+        <div className="rounded-xl border bg-card p-6 text-center">
+          <h1 className="font-semibold">タイマー情報を読み込めません</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            {bootstrapError ?? 'データを再取得しています。'}
+          </p>
+          <Button className="mt-4" onClick={() => window.location.reload()}>
+            再読み込み
+          </Button>
+        </div>
       </div>
     )
   }
@@ -129,10 +108,19 @@ export function AppShell() {
           <Button
             variant="ghost"
             size="icon"
+            aria-label="アラーム設定"
+            onClick={() => setAlarmSettingsOpen(true)}
+          >
+            <Bell />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
             aria-label="ログアウト"
             onClick={async () => {
               const result = await logout()
               if (!result.ok) toast.error(result.error)
+              else clearForLogout()
             }}
           >
             <LogOut />
@@ -182,9 +170,14 @@ export function AppShell() {
 
       <ManualEntryDialog open={manualOpen} onOpenChange={setManualOpen} />
       <TagsDialog open={tagsOpen} onOpenChange={setTagsOpen} />
+      <AlarmSettingsDialog
+        open={alarmSettingsOpen}
+        onOpenChange={setAlarmSettingsOpen}
+      />
     </div>
   )
 }
+
 
 /** Spring Boot の OAuth2 開始 URL へ移動するログインカードです。 */
 function CardLogin() {

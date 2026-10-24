@@ -69,6 +69,9 @@ export interface TimedRecordInput {
 /** Provider が画面に共有する認証・データ・操作 API の契約です。 */
 interface StoreValue {
   hydrated: boolean
+  /** 少なくとも一度、すべてのアプリデータを正常に取得できたかを示します。 */
+  dataReady: boolean
+  bootstrapError: string | null
   authenticated: boolean | null
   user: ApiUser | null
   now: number
@@ -220,11 +223,15 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = React.useState<ApiUser | null>(null)
   const [authenticated, setAuthenticated] = React.useState<boolean | null>(null)
   const [hydrated, setHydrated] = React.useState(false)
+  const [dataReady, setDataReady] = React.useState(false)
+  const [bootstrapError, setBootstrapError] = React.useState<string | null>(null)
   const [now, setNow] = React.useState(() => Date.now())
+  const refreshRequestSequence = React.useRef(0)
 
   // 一覧・進行中セッション・今日の集計を並行取得し、同じ画面状態へ反映します。
   // useCallback で参照を安定させ、下の effect が不要に再実行されるのを防ぎます。
   const refreshAll = React.useCallback(async () => {
+    const requestSequence = ++refreshRequestSequence.current
     const today = dateKey()
     const [tags, sessions, manualRecords, active, todaySummary] = await Promise.all([
       getTags(),
@@ -233,6 +240,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       getActiveSession(),
       getSummary(today),
     ])
+    // 古い通信が遅れて返ってきても、より新しい取得結果を巻き戻しません。
+    if (requestSequence !== refreshRequestSequence.current) return
     const mappedSessions = sessions.map(toSession)
     if (active && !mappedSessions.some((item) => item.id === String(active.id))) {
       mappedSessions.push(toSession(active))
@@ -243,6 +252,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       manualRecords: manualRecords.map(toManualRecord),
     })
     setSummary(todaySummary)
+    setDataReady(true)
+    setBootstrapError(null)
   }, [])
 
   const handleFailure = React.useCallback((error: unknown): Result => {
@@ -265,8 +276,15 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
         setUser(currentUser)
         setAuthenticated(true)
         await refreshAll()
-      } catch {
-        if (!cancelled) setAuthenticated(false)
+      } catch (error) {
+        if (cancelled) return
+        if (error instanceof ApiRequestError && error.status === 401) {
+          setAuthenticated(false)
+          setUser(null)
+        } else {
+          // 通信・データ取得失敗はログアウトやセッション終了として扱いません。
+          setBootstrapError(apiErrorMessage(error))
+        }
       } finally {
         if (!cancelled) setHydrated(true)
       }
@@ -572,6 +590,7 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
       setUser(null)
       setState(EMPTY_STATE)
       setSummary(null)
+      setDataReady(false)
       return ok
     } catch (error) {
       return handleFailure(error)
@@ -580,6 +599,8 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 
   const value: StoreValue = {
     hydrated,
+    dataReady,
+    bootstrapError,
     authenticated,
     user,
     now,
